@@ -1,0 +1,1 @@
+import style from 'bootstrap/dist/css/bootstrap.css'
