@@ -66,7 +66,7 @@ class GstCalculatorLineItem extends React.Component {
                     <p className="form-control-static">{currencyFormatter.format(this.props.lineItem.GST)}</p>
                 </div>
                 <div className="form-group col-md-3 col-sm-4">
-                    <label htmlFor="priceWithoutGST" className="sr-only">Price excluding GST</label>
+                    <label htmlFor="priceWithGST" className="sr-only">Price including GST</label>
                     <input type="number" className="form-control" placeholder="including gst" name="priceIncludingGST" value={this.props.lineItem.priceIncludingGST}
                         onChange={this.handlePriceIncludingGSTChange}/>
                 </div>
