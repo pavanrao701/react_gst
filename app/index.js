@@ -5,6 +5,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 var currencyFormatter = new Intl.NumberFormat('en-NZ', { style: 'currency', currency: 'NZD' });
+const GST = 0.15;
 
 class GstCalculatorHeader extends React.Component {
     render() {
@@ -128,8 +129,8 @@ class GstCalculator extends React.Component {
     handlePriceExcludingGSTChange(value, index) {
         var newLineItems = this.state.lineItems.slice(0);
         newLineItems[index].priceExcludingGST = parseFloat(value);
-        newLineItems[index].GST = parseFloat(value) * 0.15;
-        newLineItems[index].priceIncludingGST = parseFloat(value) * 1.15;
+        newLineItems[index].GST = parseFloat(value) * GST;
+        newLineItems[index].priceIncludingGST = parseFloat(value) * (1 + GST);
         this.setState({
             lineItems: newLineItems
         });
@@ -137,8 +138,8 @@ class GstCalculator extends React.Component {
 
     handlePriceIncludingGSTChange(value, index) {
         var newLineItems = this.state.lineItems.slice(0);
-        newLineItems[index].priceExcludingGST = parseFloat(value) / 1.15;
-        newLineItems[index].GST = (parseFloat(value) / 1.15) * 0.15;
+        newLineItems[index].priceExcludingGST = parseFloat(value) / (1 + GST);
+        newLineItems[index].GST = (parseFloat(value) / (1 + GST)) * GST;
         newLineItems[index].priceIncludingGST = parseFloat(value);
         this.setState({
             lineItems: newLineItems
