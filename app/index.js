@@ -3,6 +3,7 @@ import 'bootstrap/dist/css/bootstrap-theme.css';
 import 'bootstrap/js/button.js';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { Map, List, fromJS } from 'immutable';
 
 var currencyFormatter = new Intl.NumberFormat('en-NZ', { style: 'currency', currency: 'NZD' });
 const GST = 0.15;
@@ -59,16 +60,16 @@ class GstCalculatorLineItem extends React.Component {
             <div className="row">
                 <div className="form-group col-md-3 col-sm-4">
                     <label htmlFor="priceWithoutGST" className="sr-only">Price excluding GST</label>
-                    <input type="number" className="form-control" placeholder="excluding gst" name="priceExcludingGST" value={this.props.lineItem.priceExcludingGST}
+                    <input type="number" className="form-control" placeholder="excluding gst" name="priceExcludingGST" value={this.props.lineItem.get('priceExcludingGST')}
                         onChange={this.handlePriceExcludingGSTChange}/>
                 </div>
                 <div className="form-group col-md-2 col-sm-2">
                     <label htmlFor="gst" className="sr-only">GST</label>
-                    <p className="form-control-static">{currencyFormatter.format(this.props.lineItem.GST)}</p>
+                    <p className="form-control-static">{currencyFormatter.format(this.props.lineItem.get('GST'))}</p>
                 </div>
                 <div className="form-group col-md-3 col-sm-4">
                     <label htmlFor="priceWithGST" className="sr-only">Price including GST</label>
-                    <input type="number" className="form-control" placeholder="including gst" name="priceIncludingGST" value={this.props.lineItem.priceIncludingGST}
+                    <input type="number" className="form-control" placeholder="including gst" name="priceIncludingGST" value={this.props.lineItem.get('priceIncludingGST')}
                         onChange={this.handlePriceIncludingGSTChange}/>
                 </div>
                 <div className="col-md-3 col-sm-2">
@@ -111,14 +112,16 @@ class GstCalculatorFooter extends React.Component {
 class GstCalculator extends React.Component {
     constructor(props){
         super(props);
-        this.state = {
-            lineItems: [
-                {
-                    priceExcludingGST: 0.0,
-                    GST: 0.0,
-                    priceIncludingGST: 0.0
-                }
-            ]
+        this.state =  {
+            data: Map({
+                lineItems: List([
+                    Map({
+                        priceExcludingGST: 0.0,
+                        GST: 0.0,
+                        priceIncludingGST: 0.0
+                    })
+                ])
+            })
         };
         this.handlePriceExcludingGSTChange = this.handlePriceExcludingGSTChange.bind(this);
         this.handlePriceIncludingGSTChange = this.handlePriceIncludingGSTChange.bind(this);
@@ -127,76 +130,82 @@ class GstCalculator extends React.Component {
     }
 
     handlePriceExcludingGSTChange(value, index) {
-        var newLineItems = this.state.lineItems.slice(0);
-        newLineItems[index].priceExcludingGST = parseFloat(value);
-        newLineItems[index].GST = parseFloat(value) * GST;
-        newLineItems[index].priceIncludingGST = parseFloat(value) * (1 + GST);
+        
         this.setState({
-            lineItems: newLineItems
+            data: this.state.data
+                .setIn(['lineItems', index, 'priceExcludingGST'], parseFloat(value))
+                .setIn(['lineItems', index, 'GST'], parseFloat(value) * GST)
+                .setIn(['lineItems', index, 'priceIncludingGST'], parseFloat(value) * (1 + GST))
         });
     }
 
     handlePriceIncludingGSTChange(value, index) {
-        var newLineItems = this.state.lineItems.slice(0);
-        newLineItems[index].priceExcludingGST = parseFloat(value) / (1 + GST);
-        newLineItems[index].GST = (parseFloat(value) / (1 + GST)) * GST;
-        newLineItems[index].priceIncludingGST = parseFloat(value);
+        
         this.setState({
-            lineItems: newLineItems
+            data: this.state.data
+                .setIn(['lineItems', index, 'priceExcludingGST'], parseFloat(value) / (1 + GST))
+                .setIn(['lineItems', index, 'GST'], (parseFloat(value) / (1 + GST)) * GST)
+                .setIn(['lineItems', index, 'priceIncludingGST'], parseFloat(value))
         });
     }
 
     handleAddLineItem(index) {
-        var lineItem = {
-            priceExcludingGST: 0,
-            GST: 0,
-            priceIncludingGST: 0
-        };
-        var newLineItems = this.state.lineItems.slice(0);
-        newLineItems.splice(index + 1, 0, lineItem);
+        
         this.setState({
-            lineItems: newLineItems
+            data: this.state.data.update(
+                'lineItems',
+                (lineItems) => lineItems.insert(
+                    index + 1,
+                    Map({
+                        priceExcludingGST: 0,
+                        GST: 0,
+                        priceIncludingGST: 0
+                    })
+                )
+            )
         });
     }
 
     handleRemoveLineItem(index) {
-        var newLineItems = this.state.lineItems.slice(0);
-        newLineItems.splice(index, 1);
+        
         this.setState({
-            lineItems: newLineItems
-        });
+            data: this.state.data.update(
+                'lineItems',
+                (lineItems) => lineItems.delete(index)
+            )
+        })
     }
 
     totalExcludingGST() {
             var total = 0.0;
-            for(var i = 0; i < this.state.lineItems.length; i++){
-                total = total + this.state.lineItems[i].priceExcludingGST;
+            for(var i = 0; i < this.state.data.get('lineItems').size; i++){
+                total = total + this.state.data.getIn(['lineItems', i, 'priceExcludingGST']);
             }
             return total;
         };
     totalGST(){
             var total = 0.0;
-            for(var i = 0; i < this.state.lineItems.length; i++){
-                total = total + this.state.lineItems[i].GST;
+            for(var i = 0; i < this.state.data.get('lineItems').size; i++){
+                total = total + this.state.data.getIn(['lineItems', i, 'GST']);
             }
             return total;
         };
     totalIncludingGST( ){
             var total = 0.0;
-            for(var i = 0; i < this.state.lineItems.length; i++){
-                total = total + this.state.lineItems[i].priceIncludingGST;
+            for(var i = 0; i < this.state.data.get('lineItems').size; i++){
+                total = total + this.state.data.getIn(['lineItems', i, 'priceIncludingGST']);
             }
             return total;
         };
     render() {
-        const lineItems = this.state.lineItems.map(
+        const lineItems = this.state.data.get('lineItems').map(
             (lineItem, index) =>
                 <GstCalculatorLineItem key={index} index={index} lineItem={lineItem}
                      onPriceExcludingGSTChange={this.handlePriceExcludingGSTChange}
                      onPriceIncludingGSTChange={this.handlePriceIncludingGSTChange}
                      onAddLineItem={this.handleAddLineItem}
                      onRemoveLineItem={this.handleRemoveLineItem}
-                     disableRemoveButton={this.state.lineItems.length <= 1} />
+                     disableRemoveButton={this.state.data.get('lineItems').size <= 1} />
             );
         return (
             <div className="col-md-12 form-inline">
